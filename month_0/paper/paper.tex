@@ -1,0 +1,336 @@
+\documentclass[twocolumn, a4paper,12pt]{article}
+\usepackage{fontspec}
+\usepackage[paper=a4paper]{geometry}
+\usepackage{amsmath}
+\usepackage{amssymb}
+\usepackage{hyperref}
+\usepackage{algorithm2e}
+\usepackage{tabularx}
+\usepackage{microtype}
+\newfontfamily\cjkfont{Noto Sans CJK SC}
+
+% Shuts microtype up
+% Because it doesn't know chinese
+\makeatletter
+\def\MT@warn@unknown{}
+\makeatother
+
+% Because algorithm2e thinks it doesn't support twoclumn
+% https://tex.stackexchange.com/a/82272
+\makeatletter
+\newcommand{\removelatexerror}{\let\@latex@error\@gobble}
+\makeatother
+
+
+\pagestyle{empty}
+
+%opening
+\title{A Short Introduction to Brute-Forcing RSA}
+\author{\cjkfont 赖纳文}
+\date{November 16 2020}
+
+% Modular Congruence and Equivalence uses the same symbol
+% For better clarity, create an alias for equiv to modcongr
+\let\modcong\equiv
+
+\begin{document}
+\maketitle
+
+%\section*{Acknowledgements}
+% \begin{itemize}
+%  \item \LaTeX 
+%  \item \LaTeX package {\emph algorithm2e}
+%  \item \LaTeX package {\emph ifoddpage}
+%  \item \LaTeX package {\emph relsize}  
+% Get rid of everything below in octopi
+%  \item \LaTeX package {\emph glossaries}  
+%  \item \LaTeX package {\emph mfirstuc}  
+%  \item \LaTeX package {\emph xfor}  
+%  \item \LaTeX package {\emph datatool-base} 
+%  \item \LaTeX package {\emph datatool}  
+%  \item \LaTeX package {\emph substr}  
+% \end{itemize}
+
+
+\begin{abstract}
+This paper, as the title suggests, introduces a brief overview on how to brute-force RSA cryptography.
+This could either mean 
+given the encryption key and modulus, the decryption key would be retrieved, 
+or given the decryption key and modulus, the encryption key would be retrieved. 
+
+A brief explanation of RSA and how to use it is also
+covered, although proof of its correctness is out-of-scope of this paper.
+\footnote{For the curious, See section VI of the original RSA paper\cite{Rivest1978} which
+makes use {\em Fermat's Little Theorem}, or alternatively here: \href{https://www.di-mgt.com.au/rsa\_theory.html}{https://www.di-mgt.com.au/rsa\_theory.html}}
+\end{abstract}
+
+\section{Introduction}
+RSA is an assymmetric, or public-key cryptosystem,
+meaning that there are separate keys used for encryption and decryption.
+Details of the RSA cryptosystem were first publicly described in 1977 and a formal paper was published in 1978. \cite{Rivest1978} The basic premise is that the cryptosystem relies on 
+the difficulty of factoring two prime numbers. 
+
+That is to say, where p and q are prime,
+and given:-
+\[ n = p \cdot q \]
+
+It would be ``difficult'' (i.e: could not be done in polynomial time
+\footnote {For now, I advise to just think of it [polynomial time] as ``
+the time scaling depending on the value at a reasonable rate''. If you are familiar with Big O notation, polynomial time is in Big O notation $O(n^{c})$, don't worry too much if you don't understand.}
+) to find 
+$p$ and $q$ given simply just $n$ and $e$ or $d$.
+\footnote{Technically speaking, we don't have mathematical proof it isn't possible
+(on classical computers at least, on Quantum computers there is an algorithm called Shor's
+Algorithm for this), it's an open unsolved problem in computer science} 
+$n$ could be factored 
+in only one way using primes (excluding rearrangements), 
+as proven by the {\em Fundamental Theorem of Arithmetic}.
+\footnote{This was proven by Euclid thousands of years ago and you
+can find a proof online.}
+
+
+This process is called integer 
+factorisation \footnote{ Or rather, {\emph factorization} for our American counterparts}.
+
+\section{Process}
+There are several processes involved, namely, the {\em encryption} process, {\em decryption}
+process, and the {\em key generation} process. We will be working backwards, starting with
+encryption/decryption first, so we can understand {\em how} RSA is used, then move on to
+how to generate RSA keys. First off, some key terms:-
+
+\subsubsection{\texorpdfstring{$n$}{n} - \emph{modulus}} 
+The product of prime numbers $p$ and $q$. 
+This is given out along with the public key $d$.
+Sometimes when references are made to the ``public key'', it is implied that this modulus
+is included. See RFC8017 \cite{rfc8017} Section A.1.1 for more information. Not to be confused with the `Absolute Value' function of no relation
+also called Modulus.
+
+\subsubsection{\texorpdfstring{$e$}{e} - \emph{encryption key}}
+Also known as the public key. It is used to encrypt messages.
+Normally the number $65537$ is used\footnote{Notice how $65537$ is actually $2^{16}+1$,
+which is actually called a Fermat prime. It's used because it's faster to do certain
+calculations (one of the modular exponentiation algorithms) 
+because this number in binary form is $10000.....1_{2}$ and only has two 1s.}, although
+technically any number which is between 1 and the totient function (see next the totient function
+sections below) and is coprime\footnote{
+Also known as relatively prime or mutually prime. Basically an integer where the greatest
+common divisor of itself and the number it is coprime with is 1.
+} with the totient function can be used.
+
+\subsubsection{\texorpdfstring{$d$}{d} - \emph{decryption key}}
+Also known as the private key. It is used to decrypt messages.
+
+\subsubsection{\texorpdfstring{$C$}{C} - \emph{ciphertext}}
+The message in its encrypted form.
+
+\subsubsection{\texorpdfstring{$P$}{P} - \emph{plaintext}}
+The message before encryption, or equivalantly: the encrypted message after being decrypted.
+
+\subsubsection{\texorpdfstring{$\phi$}{phi} - \emph{Euler's totient function}}
+This was the totient function used in the original RSA paper.\cite{Rivest1978} 
+The result of $\phi (n) $ is the number of positive integers less than $n$ that are coprime with $n$ itself. 
+
+Euler's product formula states
+\[ \phi(n) = n \prod\limits_{p | n}{(1-\frac{1}{p})}\]
+
+But there is a short
+way to do this in our case, given $n=p \cdot q$ where $p$ and $q$ are primes, $\phi (n)$ can
+be derived from $p$ and $q$ like so\footnote{See: \href{http://www.math.unl.edu/~tmarley1/math189/notes/Nov20notes.pdf} {http://www.math.unl.edu/~tmarley1/math189/notes/Nov20notes.pdf} for proof} 
+:-
+\[ \phi = (p - 1) \cdot (q - 1) \]
+
+\subsubsection{\texorpdfstring{$\lambda$}{lambda} - \emph{Carmichael's totient function}}
+This is an improved `reduced' totient function that is used in
+place of Euler's totient function sometimes. It's used in the PKCS\#1 RFC8017\cite{rfc8017}, which is a specification for an RSA implementation. It gives
+a different and smaller number than Euler's totient function, while
+still functioning the same in context of RSA. $\lambda (n)$ can
+be derived from primes $p$ and $q$ like so:-
+\[ \lambda = lcm( (p - 1) , (q - 1) ) \]
+
+where $lcm$ is the lowest common multiple.\footnote{There exists
+a formula for calculating the lcm using the gcd (which you can, of course,
+find using the Euclidean algorithm), $lcm(a,b) = 
+\frac{|a \cdot b|}{gcd(a,b)}$ . Proof not provided.}
+
+Now, we can move on to the actual processes
+\subsection{Encryption}
+The ciphertext $C$ can be derived from the plaintext, encryption key, and modulus like so:-
+\[ C \modcong P^e \mod n \]
+
+\subsection{Decryption}
+The plaintext $P$ can be derived from the ciphertext, decryption key, and modulus like so:-
+\[ P \modcong C^d \mod n  \]
+You may notice that since it is $\mod n$, the resulting plaintext can must be less than or
+equal to the modulus ($P \leqslant n$), and yes that is indeed true. For that reason
+we can only encrypt messages which in length are less than or equal to the modulus. In
+practice, very large numbers for $p$ and $q$ are used and this isn't a problem.
+\footnote{Furthermore, since RSA is `slow', usually a separate faster
+symmetric encryption system is used, and RSA is simply used to encrypt the key for
+that cryptosystem, which need not be so long.}
+
+\subsection{Key Generation}
+First, compute the modulus $n$ as the product of two arbritatrily chosen primes.
+\footnote{If the purpose was for stronger encryption, they won't be so arbritarily chosen.
+Generally, bigger numbers are better as it will take longer to break. The original 
+paper \cite{Rivest1978} recommends around 100 digits for $p$ and $q$ to end up with 
+a roughly 200 digit modulus $n$. It also recommends for the two numbers to 
+differ in length by a few digits to protect against ``sophisticated factoring algorithms''
+which is not covered in this paper. For the curious, this is through Fermat Factorisation,
+which you are likely familiar with from Secondary School, even if you didn't know the name
+of it. It is difference of two squares. $a^{2} - b^{2} = (a+b) \cdot (a-b)$}
+
+\[ n = p \cdot q \]
+
+Then we need to find $d$ and $e$ such that:-
+
+\[ d \cdot e \modcong 1 \mod \phi (n) \]
+
+or alternatively
+
+\[ d \cdot e \modcong 1 \mod \lambda (n) \]
+
+That is to say, $d$ and $e$ are modular multiplicative inverses of each other 
+$\mod \phi (n)$ or $\lambda (n)$ .
+
+You then choose either the decryption key $d$ or the encryption key $e$ by being choosing 
+an integer which is coprime to a totient function (either one. Euler's totient function was
+used in the original RSA paper, Carmichael's totient function is the `improved' version), 
+see above.
+
+
+Note that some sources may say something like `determine $d = e^{-1} \modcong \phi (n) $ ' which
+is an abuse of notation since you cannot solve that since $e^{-1}$ is not an integer value. 
+
+Instead, solve it using the Extended Euclidean Algorithm like a 
+normal linear congruence. For example, for an linear congruence 
+$3x \modcong 1 \mod 5$, change it into the form $3x - 5k = 1$ where 
+$k$ is an integer, and find the greatest common divisor using 
+the Euclidean Algorithm of 3 and 5, then use the Extended 
+Euclidean Algorithm to find an integer value
+for $x$. Do recall that there are multiple integer solutions for $x$ and $k$ (
+Refer to lecture notes and recorded lectures and/or tutorials), usually we will use
+a positive value for $x$ since that is easier to work with.
+
+\subsection{Fast Modular Exponentiation {\em (extra)}}
+Not strictly neccessary for small numbers, but for a large number
+you may be able to optimise modular exponentiaion (used in encryption/decryption) 
+by splitting the $\mod$ for each variable. For example,
+an example using $m$ is 5, the modulus is 22, and $e$ is 13.\footnote{
+This example was taken directly from one of the MAT1830 Lectures.}
+\begin{equation*}
+\begin{split}
+ C & \modcong m^e \mod n \\
+ C & \modcong 5^{13} \mod 22 \\
+ C & \modcong {(5^2)}^3 (5) \mod 22 \\
+ C & \modcong {(25 \mod 22)}^3 (5) \mod 22 \\
+ C & \modcong {(3)}^6 (5) \mod 22 \\
+ C & \modcong (729 \mod 22) * {5 \mod 22} \\
+ C & \modcong 15 \mod 22
+\end{split}
+\end{equation*}
+
+Thus we don't have to compute the large number $5^{13}$ and can 
+simply work with smaller numbers like $3^6$ and $5$, which is especially
+useful if you are doing 64-bit calculations and resulting numbers
+of $m^e$ are larger than that. \footnote{Python, as always, already has
+a function that does modular exponentiation, and in any case, numbers in python
+aren't restricted to any number of bits. But I thought this was an interesting
+thing to discuss, and it would come in handy if you were working in a lower-level
+language.}
+
+Details of implementation in code is left as an exercise to the reader.\footnote{
+Some key terms which may be useful are `modular exponenetiation' or `modpow', with the `pow' standing for `power'.
+}
+
+\section{Brute-Forcing to find p and q}
+Finally on to the most interesting part.
+From subsection \hyperlink{subsection.2.3}{\textbf{2.3}} we can
+see an equation involving $d$, $e$ and $n$. Great! We have $e$ and
+$n$, it should be trivial to get $d$ right, by way of Euler's Extended Algorithm? 
+
+
+Not exactly. We need to calculate $\phi (n)$ or $\lambda (n)$ to use as the modulus. 
+Previously we used a short way by using either Euler's 
+totient function or Carmichael's totient
+functions; but that only works if we know the values of $p$ and $q$!
+
+For now, let's assume the key generation is using Euler's totient function. If you don't
+recall, Euler's totient function returns the number of integers less than $n$ that are coprime
+with $n$ itself. And so we start with this basic algorithm to find $\phi (n)$
+
+\begingroup
+\removelatexerror% Nullify \@latex@error
+\begin{algorithm*}[H]
+\SetAlgoLined
+\KwIn{modulus $n$}
+\KwOut{Euler's totient function (number of integers < $n$ that is coprime to $n$)}
+
+set counter to 0\;
+\For{numbers in range 1 through $n$ inclusive}{
+    \If{gcd(current\_number, $n$) is equal to 1}{
+        add 1 to counter\;
+    }
+}
+return counter\;
+\caption{Euler's Totient Brute Force}
+\end{algorithm*}
+\endgroup
+
+We could also just manually use the product sum rule as mentioned above.
+Also note that it's assuming we're using Euler's totient function, so it won't 
+work if Carmichael's totient function was used.
+Alternatively, since we know that $\phi (n)$ can be computed using $(p-1)(q-1)$ where $p$ and $q$ are prime numbers, and $p \cdot q = n$, and we have $n$, and we know that
+there is only one way to factorise $n$\footnote{As I mentioned earlier, through way
+of the Fundamental Thoerem of Arithmetic}, we can instead opt to find $p$ and $q$, so that
+we can compute $\phi (n)$ easily using the short method of $(p-1) \cdot (q-1)$
+
+\begingroup
+\removelatexerror% Nullify \@latex@error
+\begin{algorithm*}[H]
+\SetAlgoLined
+\KwIn{modulus $n$}
+\KwOut{The prime factors of $n$}
+
+\For{numbers in range 2 through ${n}$ inclusive}{
+    \If{current number is divisible by $n$}{
+        return current number and $\frac{n}{current number}$\;
+    }
+}
+\caption{Prime Factorisation Brute Force}
+\end{algorithm*}
+\endgroup
+
+Since this method retrieves both $p$ and $q$, it could work with either totient function.
+
+There are a number of optimisations that can be done. For example, 
+we only need to loop through until $\left \lfloor{\sqrt{n}}\right \rfloor$ (If you're
+not familiar with the notation of floor, it is simply rounding down.)
+\footnote{The proof isn't long, try it yourself
+by using a proof by contradiction. Also
+perhaps starting from $\sqrt{n}$ and then working backwards might be faster.}.
+And since we know
+that it can be computed using $(p-1)(q-1)$ where $p$ and $q$ are prime numbers, 
+we can get a list of prime numbers, and try to see if modulus $n$ divides a certain prime
+\footnote{If you recall, you can check if a number divides another by checking
+if the remainder is 0 during division} minus 1,
+for example $r-1$ where $r$ is a prime number. The trade-off of course being
+that you would have to maintain a list of prime numbers.
+
+
+As a reminder, once $p$ and $q$ are obtained, one could go through the key generation step
+as in subsection \hyperlink{subsection.2.3}{\textbf{2.3}}, and then use the Extended
+Euclidean Algorithm to obtain $d$.
+
+\section{Further Reading}
+At the time of writing, the wikipedia article on RSA\cite{wiki:RSA_(cryptosystem)} is fairly
+comprehensive if you want a deeper understanding of RSA. For further information
+on attacking RSA, there is this paper {\em ``Twenty Years of Attacks on the RSA
+Cryptosystem''} \cite{twenty_years_rsa} which covers methods such as 
+``Coppersmith's Attack'' and ``Wiener's Attack''. There is also {\em Revisiting Fermat's Factorization for the RSA Modulus } \cite{gupta2009revisiting} which covers Fermat's
+Factorisation for finding $p$ and $q$.
+\nocite{*}
+\bibliographystyle{plain}
+\bibliography{paper}
+
+\end{document}
+al

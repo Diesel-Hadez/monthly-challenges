@@ -1,0 +1,51 @@
+[General]
+kile_livePreviewEnabled=true
+kile_livePreviewStatusUserSpecified=false
+kile_livePreviewTool=LivePreview-PDFLaTeX
+lastDocument=paper.tex
+
+[document-settings,item:paper.bib]
+Bookmarks=
+Encoding=UTF-8
+Highlighting=BibTeX
+Highlighting Set By User=false
+Indentation Mode=normal
+Mode=BibTeX
+Mode Set By User=false
+
+[document-settings,item:paper.tex]
+Bookmarks=
+Encoding=UTF-8
+Highlighting=LaTeX
+Highlighting Set By User=false
+Indentation Mode=normal
+Mode=LaTeX
+Mode Set By User=false
+
+[item:ashortintroductiontobrute-forcingrsa.kilepr]
+open=false
+order=-1
+
+[item:paper.bib]
+open=false
+order=-1
+
+[item:paper.tex]
+open=true
+order=0
+
+[view-settings,view=0,item:paper.bib]
+CursorColumn=0
+CursorLine=0
+Dynamic Word Wrap=false
+JumpList=
+TextFolding=[]
+ViMarks=
+
+[view-settings,view=0,item:paper.tex]
+CursorColumn=72
+CursorLine=112
+Dynamic Word Wrap=true
+JumpList=
+TextFolding=[]
+ViMarks=.,112,71,[,112,69,],112,71
