@@ -49,6 +49,7 @@ inside you find this python script. Your job is to figure out the password.
 Note: This is obviously not the problem statement, I just made this story up to see if you'll actually read it.
 ``````
 #!/usr/bin/env python3
+# You could use timeit, but I used time
 import time
 import sys
 import random
