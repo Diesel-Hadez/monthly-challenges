@@ -15,6 +15,7 @@ You'd be able to spy on them then!
 
 Using a map, you map out the locations and the minimum amount of time it would take for a non-superpowered individual without superspeed to travel to the location.
 
+```
 Area 1:
     Area 2: 5 minutes
     Area 3: 65 minutes
@@ -29,6 +30,7 @@ Area 3:
     Area 5: 10 minutes
 Area 4:
     Area 5: 40 minutes
+```
 
 ## Out-Of-Universe Details:
 
