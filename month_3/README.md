@@ -42,3 +42,6 @@ To be eligible to submit the solution and receive the prize, you need to be a mo
 Fill in the solution in this Google form here before 2021-04-01: https://forms.gle/8xCJQvcooNhxSxCY9
 
 In the answer, please DO NOT specify the MAC Address of Speedy, instead, give the time and area they usually hang out. For example, if they are regularly in Area 1 on Mondays 11pm, say that instead. The approximate time can be given, as the time usually is a bit different (e.g: sometimes they come at 11:02pm or 10:59pm).
+
+I have made an easier sample set (Omission of Area 5, less noise to work around, and made the answer a lot more obvious).
+You can find in in `easier.zip`
