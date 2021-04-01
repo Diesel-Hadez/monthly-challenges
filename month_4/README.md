@@ -48,3 +48,5 @@ just to visualise how it looks like (there is no error-checking or decompression
 Alternatively, you can open the image as raw image data in a phote-editing tool or use a library in your preferred programming language to quickly visualise it.
 
 The files can be found in `./jokes_on_you_ppm2.bin` and `./jokes_on_you_ppm1.bin`.
+
+Submission link can be found [here](https://docs.google.com/forms/d/e/1FAIpQLSeqP-Fql8eM2txayTP7WNEcBQqFS8iM3w7o-d-P1dyk1z87_w/viewform?usp=pp_url)
